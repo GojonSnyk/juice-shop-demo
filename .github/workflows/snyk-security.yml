@@ -1,5 +1,5 @@
 
-name: Snyk Security Scans
+name: Snyk Security Analysis
 
 on:
   push:
@@ -14,8 +14,8 @@ permissions:
   contents: read
 
 jobs:
-  snyk-security:
-    name: Snyk Security Analysis
+  snyk-code-and-secrets:
+    name: Snyk Code and Secrets
     runs-on: ubuntu-latest
 
     env:
@@ -28,35 +28,72 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '22'
+          node-version: '24.22.1'
 
-      - name: Install project dependencies
+      - name: Install Snyk CLI
         run: |
-          npm install --ignore-scripts
-          npm --prefix frontend install --ignore-scripts
+          npm install --global snyk@1.1308.3
+
+      - name: Snyk Code Scan and Dashboard Report
+        continue-on-error: true
+        run: |
+          snyk code test \
+            --org=amti_christian \
+            --report \
+            --project-name="Juice Shop Demo - Code" \
+            --target-name="Juice Shop Demo" \
+            --target-reference="${GITHUB_REF_NAME}"
+
+      - name: Snyk Secrets Scan
+        continue-on-error: true
+        run: |
+          snyk secrets test --org=amti_christian
+
+  snyk-open-source:
+    name: Snyk Open Source
+    runs-on: ubuntu-latest
+
+    env:
+      SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24.22.1'
+
+      - name: Install matching npm version
+        run: npm install --global npm@11.19.1
+
+      - name: Install root dependencies
+        run: npm install --legacy-peer-deps --ignore-scripts
+
+      - name: Install frontend dependencies
+        run: npm --prefix frontend install --legacy-peer-deps --ignore-scripts
 
       - name: Install Snyk CLI
         run: npm install --global snyk@1.1308.3
 
-      - name: Authenticate Snyk
-        run: snyk auth
-
-      # OPEN SOURCE
-      - name: Snyk Open Source Test
-        continue-on-error: true
-        run: snyk test --all-projects --org=amti_christian
-
-      - name: Upload Open Source results to Snyk
-        run: snyk monitor --all-projects --org=amti_christian --target-reference="${GITHUB_REF_NAME}"
-
-      # CODE
-      - name: Snyk Code Scan and Report
+      - name: Test Open Source dependencies
         continue-on-error: true
         run: |
-          snyk code test --org=amti_christian --report --project-name="juice-shop-demo-code" --target-name="juice-shop-demo" --target-reference="${GITHUB_REF_NAME}"
+          snyk test --all-projects --org=amti_christian
 
-      # SECRETS
-      - name: Snyk Secrets Scan and Report
-        continue-on-error: true
+      - name: Upload root dependencies to Snyk
         run: |
-          snyk secrets test --org=amti_christian --report --target-name="juice-shop-demo-secrets" --target-reference="${GITHUB_REF_NAME}"
+          snyk monitor \
+            --file=package.json \
+            --org=amti_christian \
+            --project-name="Juice Shop Demo - Open Source - Root" \
+            --target-reference="${GITHUB_REF_NAME}"
+
+      - name: Upload frontend dependencies to Snyk
+        run: |
+          snyk monitor \
+            --file=frontend/package.json \
+            --org=amti_christian \
+            --project-name="Juice Shop Demo - Open Source - Frontend" \
+            --target-reference="${GITHUB_REF_NAME}"
