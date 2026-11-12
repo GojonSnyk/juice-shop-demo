@@ -30,7 +30,6 @@ jobs:
         with:
           node-version: '24.22.1'
           
-
       - name: Install Snyk CLI
         run: |
           npm install --global snyk@1.1308.3
