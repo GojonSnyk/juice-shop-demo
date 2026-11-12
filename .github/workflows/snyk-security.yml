@@ -20,6 +20,7 @@ jobs:
 
     env:
       SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+      SNYK_API: ${{ secrets.SNYK_API }}
 
     steps:
       - name: Checkout repository
