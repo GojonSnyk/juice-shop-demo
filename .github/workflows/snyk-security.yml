@@ -42,7 +42,7 @@ jobs:
             --org=amti_christian \
             --report \
             --project-name="Juice Shop Demo - Code" \
-            --target-name="Juice Shop Demo" \
+            --target-name="Juice Shop Demo - Code" \
             --target-reference="${GITHUB_REF_NAME}"
 
       - name: Snyk Secrets Scan
